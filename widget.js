@@ -1,105 +1,112 @@
 (function () {
-    // Create style element
-    const style = document.createElement("style");
+    const style = document.createElement('style');
     style.textContent = `
         #chatbot-button {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: #007bff;
+            background: #4f46e5;
             color: white;
-            padding: 10px;
+            width: 55px;
+            height: 55px;
             border-radius: 50%;
+            font-size: 24px;
+            text-align: center;
+            line-height: 55px;
             cursor: pointer;
             z-index: 9999;
-            font-size: 20px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
-
         #chatbot-window {
             position: fixed;
-            bottom: 80px;
+            bottom: 90px;
             right: 20px;
-            width: 300px;
-            height: 400px;
+            width: 320px;
+            height: 420px;
             background: white;
-            border: 1px solid #ccc;
-            border-radius: 10px;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
             display: none;
             flex-direction: column;
+            overflow: hidden;
             z-index: 9999;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            font-family: Arial, sans-serif;
+            border: 1px solid #ddd;
         }
-
         #chatbot-header {
-            background: #007bff;
+            background: #4f46e5;
             color: white;
-            padding: 10px;
+            padding: 14px;
             font-weight: bold;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
+            text-align: center;
         }
-
-        #chatbot-icebreakers {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            padding: 10px;
-        }
-
-        .icebreaker {
-            background: #f0f0f0;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
         #chatbot-messages {
             flex: 1;
-            overflow-y: auto;
             padding: 10px;
+            overflow-y: auto;
             font-size: 14px;
+            background: #f9f9f9;
         }
-
         .chat-message {
-            margin-bottom: 10px;
+            margin: 6px 0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            max-width: 80%;
+            clear: both;
         }
-
         .chat-message.user {
-            text-align: right;
-            color: #007bff;
-        }
-
-        .chat-message.bot {
-            text-align: left;
+            background: #e0e7ff;
             color: #333;
+            margin-left: auto;
+            width: fit-content;
         }
-
+        .chat-message.bot {
+            background: #f1f5f9;
+            color: #111;
+            margin-right: auto;
+            width: fit-content;
+            text-align: left;
+            white-space: pre-wrap;
+        }
         #chatbot-input-container {
             display: flex;
             border-top: 1px solid #ccc;
         }
-
         #chatbot-input {
             flex: 1;
-            padding: 10px;
             border: none;
+            padding: 12px;
+            font-size: 14px;
             outline: none;
+        }
+        #chatbot-send {
+            background: #4f46e5;
+            color: white;
+            padding: 12px 16px;
+            cursor: pointer;
+            border: none;
             font-size: 14px;
         }
-
-        #chatbot-send {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 15px;
+        #chatbot-icebreakers {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            padding: 10px;
+        }
+        .icebreaker {
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            padding: 8px 12px;
             cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .icebreaker:hover {
+            background-color: #e0e0e0;
         }
     `;
     document.head.appendChild(style);
 
-    // Create HTML
-    const html = `
+    const widgetHTML = `
         <div id="chatbot-button">💬</div>
         <div id="chatbot-window">
             <div id="chatbot-header">Chat with us</div>
@@ -115,11 +122,11 @@
             </div>
         </div>
     `;
-    const container = document.createElement("div");
-    container.innerHTML = html;
+
+    const container = document.createElement('div');
+    container.innerHTML = widgetHTML;
     document.body.appendChild(container);
 
-    // Setup JavaScript
     const chatButton = document.getElementById("chatbot-button");
     const chatWindow = document.getElementById("chatbot-window");
     const messages = document.getElementById("chatbot-messages");
@@ -134,7 +141,7 @@
     chatButton.onclick = () => {
         const isHidden = window.getComputedStyle(chatWindow).display === "none";
         chatWindow.style.display = isHidden ? "flex" : "none";
-        icebreakers.style.display = (isHidden && !hasMessages()) ? "flex" : "none";
+        icebreakers.style.display = isHidden && !hasMessages() ? "flex" : "none";
     };
 
     function appendMessage(role, text) {
@@ -148,23 +155,22 @@
     function sendMessage() {
         const userText = input.value.trim();
         if (!userText) return;
-
         icebreakers.style.display = "none";
         appendMessage("user", userText);
         input.value = "";
 
         fetch("https://serverowned.onrender.com/api/chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({ message: userText }),
         })
-            .then((response) => response.json())
-            .then((data) => {
-                appendMessage("bot", data.reply);
-            })
-            .catch((error) => {
+            .then((res) => res.json())
+            .then((data) => appendMessage("bot", data.reply))
+            .catch((err) => {
                 appendMessage("bot", "❌ There was an error contacting the assistant.");
-                console.error("Error:", error);
+                console.error("Error:", err);
             });
     }
 
