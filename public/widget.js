@@ -164,7 +164,10 @@
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ message: userText }),
+            body: JSON.stringify({
+                message: userText,
+                client_id: clientId, // ✅ include this line
+            }),
         })
             .then((res) => res.json())
             .then((data) => appendMessage("bot", data.reply))
