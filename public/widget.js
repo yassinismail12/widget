@@ -166,7 +166,7 @@
             },
             body: JSON.stringify({
                 message: userText,
-                client_id: clientId, // ✅ include this line
+
             }),
         })
             .then((res) => res.json())
