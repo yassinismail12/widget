@@ -105,6 +105,8 @@
         }
     `;
     document.head.appendChild(style);
+    const scriptTag = document.currentScript;
+    const clientId = scriptTag.getAttribute("data-client-id");
 
     const widgetHTML = `
         <div id="chatbot-button">💬</div>
@@ -166,7 +168,7 @@
             },
             body: JSON.stringify({
                 message: userText,
-
+                client_id: clientId,
             }),
         })
             .then((res) => res.json())
