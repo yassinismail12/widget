@@ -105,8 +105,7 @@
         }
     `;
     document.head.appendChild(style);
-    const scriptTag = document.currentScript;
-    const clientId = scriptTag.getAttribute("data-client-id");
+
 
     const widgetHTML = `
         <div id="chatbot-button">💬</div>
@@ -128,7 +127,9 @@
     const container = document.createElement('div');
     container.innerHTML = widgetHTML;
     document.body.appendChild(container);
-
+    const scriptTag = document.currentScript;
+    const clientId = scriptTag.getAttribute("data-client-id");
+    console.log("Client ID from widget:", clientId);
     const chatButton = document.getElementById("chatbot-button");
     const chatWindow = document.getElementById("chatbot-window");
     const messages = document.getElementById("chatbot-messages");
