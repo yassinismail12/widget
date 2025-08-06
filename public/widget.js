@@ -169,7 +169,7 @@
             },
             body: JSON.stringify({
                 message: userText,
-                client_id: clientId,
+                clientId: clientId,
             }),
         })
             .then((res) => res.json())
