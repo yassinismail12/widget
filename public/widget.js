@@ -138,6 +138,9 @@
     }
     console.log("Persistent userId:", userId);
 
+    // --- Track first message since page refresh ---
+    let isFirstMessage = true;
+
     const chatButton = document.getElementById("chatbot-button");
     const chatWindow = document.getElementById("chatbot-window");
     const messages = document.getElementById("chatbot-messages");
@@ -178,7 +181,8 @@
             body: JSON.stringify({
                 message: userText,
                 clientId: clientId,
-                userId: userId,  // <--- send persistent userId here
+                userId: userId,
+                firstMessage: isFirstMessage // <--- send flag
             }),
         })
             .then((res) => res.json())
@@ -187,6 +191,11 @@
                 appendMessage("bot", "❌ There was an error contacting the assistant.");
                 console.error("Error:", err);
             });
+
+        // after sending the first message, set flag to false
+        if (isFirstMessage) {
+            isFirstMessage = false;
+        }
     }
 
     sendBtn.onclick = sendMessage;
