@@ -182,7 +182,7 @@
                 message: userText,
                 clientId: clientId,
                 userId: userId,
-                firstMessage: isFirstMessage // <--- send flag
+                isFirstMessage: isFirstMessage // <--- send flag
             }),
         })
             .then((res) => res.json())
