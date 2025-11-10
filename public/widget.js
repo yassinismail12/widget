@@ -158,13 +158,23 @@
         icebreakers.style.display = isHidden && !hasMessages() ? "flex" : "none";
     };
 
-    function appendMessage(role, text) {
-        const msg = document.createElement("div");
-        msg.className = `chat-message ${role}`;
+  function appendMessage(role, text) {
+    const msg = document.createElement("div");
+    msg.className = `chat-message ${role}`;
+
+    // Make links clickable for bot messages
+    if (role === "bot") {
+        msg.innerHTML = text.replace(
+            /(https?:\/\/[^\s]+)/g,
+            '<a href="$1" target="_blank" style="color:#4f46e5; text-decoration:underline;">$1</a>'
+        );
+    } else {
         msg.textContent = text;
-        messages.appendChild(msg);
-        messages.scrollTop = messages.scrollHeight;
     }
+
+    messages.appendChild(msg);
+    messages.scrollTop = messages.scrollHeight;
+}
 
     function sendMessage() {
         const userText = input.value.trim();
