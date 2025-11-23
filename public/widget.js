@@ -103,6 +103,50 @@
         .icebreaker:hover {
             background-color: #e0e0e0;
         }
+            @media (max-width: 480px) {
+    #chatbot-button {
+        bottom: 15px;
+        right: 15px;
+        width: 50px;
+        height: 50px;
+        font-size: 22px;
+        line-height: 50px;
+    }
+
+    #chatbot-window {
+        bottom: 75px;
+        right: 10px;
+        width: 90vw;     /* full width on mobile */
+        height: 70vh;    /* taller window */
+        border-radius: 12px;
+    }
+
+    #chatbot-header {
+        font-size: 16px;
+        padding: 12px;
+    }
+
+    #chatbot-messages {
+        font-size: 13px;
+        padding: 8px;
+    }
+
+    #chatbot-input {
+        font-size: 13px;
+        padding: 10px;
+    }
+
+    #chatbot-send {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .icebreaker {
+        padding: 8px;
+        font-size: 13px;
+    }
+}
+
     `;
     document.head.appendChild(style);
 
