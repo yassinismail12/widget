@@ -117,19 +117,13 @@
     `;
     document.head.appendChild(style);
 
-    const widgetHTML = `
+    const container = document.createElement('div');
+    container.innerHTML = `
         <div id="chatbot-button">💬</div>
         <div id="chatbot-window">
             <div id="chatbot-header">Chat with us</div>
-
-            <div id="chatbot-icebreakers">
-                <div class="icebreaker">Can foreigners buy property in Egypt?</div>
-                <div class="icebreaker">Do prices include maintenance?</div>
-                <div class="icebreaker">Do you offer cash discounts?</div>
-            </div>
-
+            <div id="chatbot-icebreakers"></div>
             <div id="chatbot-messages"></div>
-
             <div id="chatbot-input-container">
                 <input id="chatbot-file" type="file" accept="image/*" style="display:none" />
                 <button id="chatbot-upload">📷</button>
@@ -138,13 +132,11 @@
             </div>
         </div>
     `;
-
-    const container = document.createElement('div');
-    container.innerHTML = widgetHTML;
     document.body.appendChild(container);
 
     const scriptTag = document.currentScript;
     const clientId = scriptTag?.getAttribute("data-client-id") || null;
+    const dynamicIcebreakers = scriptTag?.getAttribute("data-icebreakers");
     console.log("Client ID from widget:", clientId);
 
     // persistent userId
@@ -160,11 +152,45 @@
     const chatButton = document.getElementById("chatbot-button");
     const chatWindow = document.getElementById("chatbot-window");
     const messages = document.getElementById("chatbot-messages");
-    const icebreakers = document.getElementById("chatbot-icebreakers");
+    const icebreakersContainer = document.getElementById("chatbot-icebreakers");
     const input = document.getElementById("chatbot-input");
     const sendBtn = document.getElementById("chatbot-send");
     const uploadBtn = document.getElementById("chatbot-upload");
     const fileInput = document.getElementById("chatbot-file");
+
+    // Default icebreakers
+    const defaultIcebreakers = [
+        "Can foreigners buy property in Egypt?",
+        "Do prices include maintenance?",
+        "Do you offer cash discounts?"
+    ];
+
+    // Use dynamic ones if provided, else default
+    let icebreakersList = defaultIcebreakers;
+    try {
+        if (dynamicIcebreakers) {
+            const parsed = JSON.parse(dynamicIcebreakers);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                icebreakersList = parsed;
+            }
+        }
+    } catch (e) {
+        console.warn("Invalid dynamic icebreakers JSON, using default.");
+    }
+
+    // Render icebreakers
+    icebreakersContainer.innerHTML = "";
+    icebreakersList.forEach(text => {
+        const div = document.createElement("div");
+        div.className = "icebreaker";
+        div.textContent = text;
+        div.onclick = () => {
+            input.value = text;
+            icebreakersContainer.style.display = "none";
+            sendBtn.click();
+        };
+        icebreakersContainer.appendChild(div);
+    });
 
     function hasMessages() {
         return messages.children.length > 0;
@@ -173,14 +199,13 @@
     chatButton.onclick = () => {
         const isHidden = window.getComputedStyle(chatWindow).display === "none";
         chatWindow.style.display = isHidden ? "flex" : "none";
-        icebreakers.style.display = isHidden && !hasMessages() ? "flex" : "none";
+        icebreakersContainer.style.display = isHidden && !hasMessages() ? "flex" : "none";
     };
 
     function appendMessage(role, text) {
         const msg = document.createElement("div");
         msg.className = `chat-message ${role}`;
         if (role === "bot") {
-            // allow clickable links in bot messages
             msg.innerHTML = (text || "").replace(
                 /(https?:\/\/[^\s]+)/g,
                 '<a href="$1" target="_blank" style="color:#4f46e5;text-decoration:underline;">$1</a>'
@@ -206,100 +231,53 @@
         messages.scrollTop = messages.scrollHeight;
     }
 
-    // Helper: send to server with timeout & robust handling
     async function postToServer(payload, timeoutMs = 15000) {
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), timeoutMs);
-
         try {
             const res = await fetch("https://serverowned.onrender.com/api/chat", {
                 method: "POST",
                 mode: "cors",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
                 signal: controller.signal
             });
-
             clearTimeout(id);
-
-            // 204 No Content -> bot intentionally silent
-            if (res.status === 204) {
-                return { silent: true };
-            }
-
-            // Try to parse JSON safely
+            if (res.status === 204) return { silent: true };
             const text = await res.text();
-            if (!text) {
-                return { error: `Empty response (status ${res.status})` };
-            }
-
-            try {
-                const json = JSON.parse(text);
-                return { ok: true, data: json, status: res.status };
-            } catch (e) {
-                // Not JSON
-                return { error: `Unexpected non-JSON response (status ${res.status}): ${text}` };
-            }
+            if (!text) return { error: `Empty response (status ${res.status})` };
+            try { return { ok: true, data: JSON.parse(text), status: res.status }; } 
+            catch { return { error: `Unexpected non-JSON response (status ${res.status}): ${text}` }; }
         } catch (err) {
-            if (err.name === "AbortError") {
-                return { error: "Request timed out (no response from server)." };
-            }
+            if (err.name === "AbortError") return { error: "Request timed out." };
             return { error: err.message || String(err) };
         }
     }
 
-    // Main send function - sends either text only or text+single image.
     async function sendMessage({ text = "", imageDataUrl = null } = {}) {
-        // Prevent double sends
         sendBtn.disabled = true;
         uploadBtn.disabled = true;
         input.disabled = true;
 
-        // Nothing to send
         if (!text && !imageDataUrl) {
-            sendBtn.disabled = false;
-            uploadBtn.disabled = false;
-            input.disabled = false;
+            sendBtn.disabled = false; uploadBtn.disabled = false; input.disabled = false;
             return;
         }
 
-        // Show client-side preview
         if (text) appendMessage("user", text);
         if (imageDataUrl) appendImage("user", imageDataUrl);
-icebreakers.style.display = "none";
-        // Build payload matching backend expectations:
-        // - when image present: use `image: "data:...,base64,..."` field (single image)
-        // - keep message text if present
-        const payload = {
-            message: text || "",
-            clientId,
-            userId,
-            isFirstMessage: !!isFirstMessage
-        };
-        if (imageDataUrl) {
-            // backend earlier accepts `image` (string) or req.files
-            payload.image = imageDataUrl;
-        }
+        icebreakersContainer.style.display = "none";
 
-        // Do the request
+        const payload = { message: text || "", clientId, userId, isFirstMessage: !!isFirstMessage };
+        if (imageDataUrl) payload.image = imageDataUrl;
+
         const result = await postToServer(payload, 15000);
 
-        // Re-enable inputs
-        sendBtn.disabled = false;
-        uploadBtn.disabled = false;
-        input.disabled = false;
+        sendBtn.disabled = false; uploadBtn.disabled = false; input.disabled = false;
         isFirstMessage = false;
 
-        // Handle result
-        if (result.silent) {
-            // Bot intentionally silent (204) — do nothing
-            return;
-        }
-
+        if (result.silent) return;
         if (result.error) {
-            // show a clearer error message to user
             const friendly = "❌ There was an error contacting the assistant. " + (result.error || "");
             appendMessage("bot", friendly);
             console.error("Chat widget network error:", result.error);
@@ -308,82 +286,35 @@ icebreakers.style.display = "none";
 
         if (result.ok && result.data) {
             const data = result.data;
-            // If backend returns images in `images` or `image` keys, show them
-            if (Array.isArray(data.images)) {
-                data.images.forEach(imgSrc => {
-                    if (imgSrc) appendImage("bot", imgSrc);
-                });
-            } else if (data.image) {
-                appendImage("bot", data.image);
-            }
-
-            // Reply text
-            if (typeof data.reply === "string" && data.reply.trim().length > 0) {
-                appendMessage("bot", data.reply);
-            } else if (!data.reply) {
-                // If reply missing but status ok, show a gentle message
-                // (some backends may return only images or be silent)
-                // do nothing or show small placeholder:
-                // appendMessage("bot", "✅ Message delivered (no textual reply).");
-            }
+            if (Array.isArray(data.images)) data.images.forEach(img => img && appendImage("bot", img));
+            else if (data.image) appendImage("bot", data.image);
+            if (typeof data.reply === "string" && data.reply.trim().length > 0) appendMessage("bot", data.reply);
             return;
         }
 
-        // fallback
         appendMessage("bot", "❌ Unknown server response.");
         console.error("Unknown response from server:", result);
     }
 
-    // Send button handler
     sendBtn.onclick = () => {
         const text = input.value.trim();
-        // if there's text, send text only
         sendMessage({ text });
         input.value = "";
     };
 
-    // Enter key sends
-    input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            sendBtn.click();
-        }
+    input.addEventListener("keypress", e => {
+        if (e.key === "Enter") { e.preventDefault(); sendBtn.click(); }
     });
 
-    // Icebreakers
-    document.querySelectorAll(".icebreaker").forEach(item => {
-        item.onclick = () => {
-            input.value = item.textContent;
-            icebreakers.style.display = "none";
-            sendBtn.click();
-        };
-    });
-
-    // Upload handling: user clicks button -> open file input
     uploadBtn.onclick = () => fileInput.click();
-
-    // When file chosen, convert to data URL and send as `image` payload
-    fileInput.onchange = async (e) => {
+    fileInput.onchange = async e => {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
-        // reset input so same file can be picked later
         fileInput.value = "";
-
-        // Only allow image types
-        if (!file.type.startsWith("image/")) {
-            appendMessage("bot", "❌ Please select an image file.");
-            return;
-        }
-
+        if (!file.type.startsWith("image/")) { appendMessage("bot", "❌ Please select an image file."); return; }
         const reader = new FileReader();
-        reader.onload = async (ev) => {
-            const dataUrl = ev.target.result; // "data:image/..;base64,...."
-            // Send the image (and no text)
-            await sendMessage({ text: "", imageDataUrl: dataUrl });
-        };
-        reader.onerror = () => {
-            appendMessage("bot", "❌ Failed to read the image file.");
-        };
+        reader.onload = async ev => { await sendMessage({ text: "", imageDataUrl: ev.target.result }); };
+        reader.onerror = () => { appendMessage("bot", "❌ Failed to read the image file."); };
         reader.readAsDataURL(file);
     };
 })();
