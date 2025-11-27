@@ -22,7 +22,7 @@
             bottom: 90px;
             right: 20px;
             width: 320px;
-            height: 420px;
+            height: 480px;
             background: white;
             border-radius: 14px;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
@@ -87,6 +87,9 @@
             border: none;
             font-size: 14px;
         }
+        #chatbot-file {
+            display: none;
+        }
         #chatbot-icebreakers {
             display: none;
             flex-direction: column;
@@ -103,50 +106,49 @@
         .icebreaker:hover {
             background-color: #e0e0e0;
         }
-            @media (max-width: 480px) {
-    #chatbot-button {
-        bottom: 15px;
-        right: 15px;
-        width: 50px;
-        height: 50px;
-        font-size: 22px;
-        line-height: 50px;
-    }
+        @media (max-width: 480px) {
+            #chatbot-button {
+                bottom: 15px;
+                right: 15px;
+                width: 50px;
+                height: 50px;
+                font-size: 22px;
+                line-height: 50px;
+            }
 
-    #chatbot-window {
-        bottom: 75px;
-        right: 10px;
-        width: 90vw;     /* full width on mobile */
-        height: 70vh;    /* taller window */
-        border-radius: 12px;
-    }
+            #chatbot-window {
+                bottom: 75px;
+                right: 10px;
+                width: 90vw;
+                height: 70vh;
+                border-radius: 12px;
+            }
 
-    #chatbot-header {
-        font-size: 16px;
-        padding: 12px;
-    }
+            #chatbot-header {
+                font-size: 16px;
+                padding: 12px;
+            }
 
-    #chatbot-messages {
-        font-size: 13px;
-        padding: 8px;
-    }
+            #chatbot-messages {
+                font-size: 13px;
+                padding: 8px;
+            }
 
-    #chatbot-input {
-        font-size: 13px;
-        padding: 10px;
-    }
+            #chatbot-input {
+                font-size: 13px;
+                padding: 10px;
+            }
 
-    #chatbot-send {
-        padding: 10px 12px;
-        font-size: 13px;
-    }
+            #chatbot-send {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
 
-    .icebreaker {
-        padding: 8px;
-        font-size: 13px;
-    }
-}
-
+            .icebreaker {
+                padding: 8px;
+                font-size: 13px;
+            }
+        }
     `;
     document.head.appendChild(style);
 
@@ -162,6 +164,7 @@
             <div id="chatbot-messages"></div>
             <div id="chatbot-input-container">
                 <input id="chatbot-input" type="text" placeholder="Type your message..." />
+                <input id="chatbot-file" type="file" accept="image/*" />
                 <button id="chatbot-send">➤</button>
             </div>
         </div>
@@ -170,11 +173,11 @@
     const container = document.createElement('div');
     container.innerHTML = widgetHTML;
     document.body.appendChild(container);
+
     const scriptTag = document.currentScript;
     const clientId = scriptTag.getAttribute("data-client-id");
     console.log("Client ID from widget:", clientId);
 
-    // --- Add persistent userId using localStorage ---
     let userId = localStorage.getItem("userId");
     if (!userId) {
         userId = crypto.randomUUID();
@@ -182,7 +185,6 @@
     }
     console.log("Persistent userId:", userId);
 
-    // --- Track first message since page refresh ---
     let isFirstMessage = true;
 
     const chatButton = document.getElementById("chatbot-button");
@@ -190,6 +192,7 @@
     const messages = document.getElementById("chatbot-messages");
     const icebreakers = document.getElementById("chatbot-icebreakers");
     const input = document.getElementById("chatbot-input");
+    const fileInput = document.getElementById("chatbot-file");
     const sendBtn = document.getElementById("chatbot-send");
 
     function hasMessages() {
@@ -202,60 +205,77 @@
         icebreakers.style.display = isHidden && !hasMessages() ? "flex" : "none";
     };
 
-  function appendMessage(role, text) {
-    const msg = document.createElement("div");
-    msg.className = `chat-message ${role}`;
-
-    // Make links clickable for bot messages
-    if (role === "bot") {
-        msg.innerHTML = text.replace(
-            /(https?:\/\/[^\s]+)/g,
-            '<a href="$1" target="_blank" style="color:#4f46e5; text-decoration:underline;">$1</a>'
-        );
-    } else {
-        msg.textContent = text;
+    function appendMessage(role, content, isImage = false) {
+        const msg = document.createElement("div");
+        msg.className = `chat-message ${role}`;
+        if (isImage) {
+            const img = document.createElement("img");
+            img.src = content;
+            img.style.maxWidth = "200px";
+            img.style.borderRadius = "8px";
+            img.style.display = "block";
+            img.style.marginTop = "4px";
+            msg.appendChild(img);
+        } else if (role === "bot") {
+            msg.innerHTML = content.replace(
+                /(https?:\/\/[^\s]+)/g,
+                '<a href="$1" target="_blank" style="color:#4f46e5;text-decoration:underline;">$1</a>'
+            );
+        } else {
+            msg.textContent = content;
+        }
+        messages.appendChild(msg);
+        messages.scrollTop = messages.scrollHeight;
     }
-
-    messages.appendChild(msg);
-    messages.scrollTop = messages.scrollHeight;
-}
 
     function sendMessage() {
         const userText = input.value.trim();
-        if (!userText) return;
+        const file = fileInput.files[0];
+
+        if (!userText && !file) return;
+
         icebreakers.style.display = "none";
-        appendMessage("user", userText);
+
+        if (userText) appendMessage("user", userText);
         input.value = "";
 
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                appendMessage("user", e.target.result, true);
+                sendToServer(userText, e.target.result);
+            };
+            reader.readAsDataURL(file);
+            fileInput.value = "";
+        } else {
+            sendToServer(userText);
+        }
+
+        if (isFirstMessage) isFirstMessage = false;
+    }
+
+    function sendToServer(message, imageBase64 = null) {
         fetch("https://serverowned.onrender.com/api/chat", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                message: userText,
-                clientId: clientId,
-                userId: userId,
-                isFirstMessage: isFirstMessage // <--- send flag
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message, clientId, userId, isFirstMessage, image: imageBase64 })
         })
-            .then((res) => res.json())
-            .then((data) => appendMessage("bot", data.reply))
-            .catch((err) => {
-                appendMessage("bot", "❌ There was an error contacting the assistant.");
-                console.error("Error:", err);
-            });
-
-        // after sending the first message, set flag to false
-        if (isFirstMessage) {
-            isFirstMessage = false;
-        }
+        .then(res => res.json())
+        .then(data => {
+            if (data.image) {
+                appendMessage("bot", data.image, true);
+            } else {
+                appendMessage("bot", data.reply);
+            }
+        })
+        .catch(err => {
+            appendMessage("bot", "❌ There was an error contacting the assistant.");
+            console.error("Error:", err);
+        });
     }
 
     sendBtn.onclick = sendMessage;
-    input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") sendMessage();
-    });
+    input.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
 
     document.querySelectorAll(".icebreaker").forEach(item => {
         item.onclick = () => {
