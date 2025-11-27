@@ -71,6 +71,8 @@
         #chatbot-input-container {
             display: flex;
             border-top: 1px solid #ccc;
+            gap: 4px;
+            padding: 4px;
         }
         #chatbot-input {
             flex: 1;
@@ -86,6 +88,16 @@
             cursor: pointer;
             border: none;
             font-size: 14px;
+            border-radius: 6px;
+        }
+        #chatbot-image-btn {
+            background: #4f46e5;
+            color: white;
+            padding: 12px 14px;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+            border-radius: 6px;
         }
         #chatbot-file {
             display: none;
@@ -115,7 +127,6 @@
                 font-size: 22px;
                 line-height: 50px;
             }
-
             #chatbot-window {
                 bottom: 75px;
                 right: 10px;
@@ -123,27 +134,22 @@
                 height: 70vh;
                 border-radius: 12px;
             }
-
             #chatbot-header {
                 font-size: 16px;
                 padding: 12px;
             }
-
             #chatbot-messages {
                 font-size: 13px;
                 padding: 8px;
             }
-
             #chatbot-input {
                 font-size: 13px;
                 padding: 10px;
             }
-
-            #chatbot-send {
+            #chatbot-send, #chatbot-image-btn {
                 padding: 10px 12px;
                 font-size: 13px;
             }
-
             .icebreaker {
                 padding: 8px;
                 font-size: 13px;
@@ -165,6 +171,7 @@
             <div id="chatbot-input-container">
                 <input id="chatbot-input" type="text" placeholder="Type your message..." />
                 <input id="chatbot-file" type="file" accept="image/*" />
+                <button id="chatbot-image-btn">📎</button>
                 <button id="chatbot-send">➤</button>
             </div>
         </div>
@@ -194,6 +201,7 @@
     const input = document.getElementById("chatbot-input");
     const fileInput = document.getElementById("chatbot-file");
     const sendBtn = document.getElementById("chatbot-send");
+    const imageBtn = document.getElementById("chatbot-image-btn");
 
     function hasMessages() {
         return messages.children.length > 0;
@@ -204,6 +212,8 @@
         chatWindow.style.display = isHidden ? "flex" : "none";
         icebreakers.style.display = isHidden && !hasMessages() ? "flex" : "none";
     };
+
+    imageBtn.onclick = () => fileInput.click();
 
     function appendMessage(role, content, isImage = false) {
         const msg = document.createElement("div");
@@ -236,22 +246,23 @@
 
         icebreakers.style.display = "none";
 
-        if (userText) appendMessage("user", userText);
-        input.value = "";
-
-        if (file) {
+        if (!file && userText) {
+            // Text only
+            appendMessage("user", userText);
+            sendToServer(userText);
+        } else if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 appendMessage("user", e.target.result, true);
-                sendToServer(userText, e.target.result);
+                sendToServer(userText || "", e.target.result);
             };
             reader.readAsDataURL(file);
             fileInput.value = "";
-        } else {
-            sendToServer(userText);
+            input.value = "";
         }
 
         if (isFirstMessage) isFirstMessage = false;
+        input.value = "";
     }
 
     function sendToServer(message, imageBase64 = null) {
@@ -264,7 +275,7 @@
         .then(data => {
             if (data.image) {
                 appendMessage("bot", data.image, true);
-            } else {
+            } else if (data.reply) {
                 appendMessage("bot", data.reply);
             }
         })
