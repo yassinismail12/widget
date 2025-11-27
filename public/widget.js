@@ -268,7 +268,7 @@
         // Show client-side preview
         if (text) appendMessage("user", text);
         if (imageDataUrl) appendImage("user", imageDataUrl);
-
+icebreakers.style.display = "none";
         // Build payload matching backend expectations:
         // - when image present: use `image: "data:...,base64,..."` field (single image)
         // - keep message text if present
