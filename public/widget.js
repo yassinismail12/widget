@@ -222,44 +222,57 @@
         messages.scrollTop = messages.scrollHeight;
     }
 
-    function sendMessage() {
-        const userText = input.value.trim();
-        let imageFile = imageInput.files[0];
+   function sendMessage() {
+    const userText = input.value.trim();
+    let imageFile = imageInput.files[0];
 
-        if (!userText && !imageFile) return;
-        icebreakers.style.display = "none";
-        if (userText) appendMessage("user", userText);
-        input.value = "";
+    if (!userText && !imageFile) return;
+    icebreakers.style.display = "none";
 
-        const readerPromise = imageFile ? new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(imageFile);
-        }) : Promise.resolve(null);
+    // Append text if exists
+    if (userText) appendMessage("user", userText);
 
-        readerPromise.then((imageData) => {
-            imageInput.value = ""; // clear input
-            fetch("https://serverowned.onrender.com/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: userText,
-                    image: imageData,
-                    clientId: clientId,
-                    userId: userId,
-                    isFirstMessage: isFirstMessage
-                }),
-            })
-            .then((res) => res.json())
-            .then((data) => appendMessage("bot", data.reply))
-            .catch((err) => {
-                appendMessage("bot", "❌ There was an error contacting the assistant.");
-                console.error("Error:", err);
-            });
-        });
-
-        if (isFirstMessage) isFirstMessage = false;
+    // Append image if exists
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            appendMessage("user", `<img src="${reader.result}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`);
+        };
+        reader.readAsDataURL(imageFile);
     }
+
+    input.value = "";
+
+    const readerPromise = imageFile ? new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(imageFile);
+    }) : Promise.resolve(null);
+
+    readerPromise.then((imageData) => {
+        imageInput.value = ""; // clear input
+        fetch("https://serverowned.onrender.com/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: userText,
+                image: imageData,
+                clientId: clientId,
+                userId: userId,
+                isFirstMessage: isFirstMessage
+            }),
+        })
+        .then((res) => res.json())
+        .then((data) => appendMessage("bot", data.reply))
+        .catch((err) => {
+            appendMessage("bot", "❌ There was an error contacting the assistant.");
+            console.error("Error:", err);
+        });
+    });
+
+    if (isFirstMessage) isFirstMessage = false;
+}
+
 
     sendBtn.onclick = sendMessage;
     input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
