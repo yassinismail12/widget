@@ -204,23 +204,27 @@
         icebreakers.style.display = isHidden && !hasMessages() ? "flex" : "none";
     };
 
-    function appendMessage(role, content) {
-        const msg = document.createElement("div");
-        msg.className = `chat-message ${role}`;
+ function appendMessage(role, content, isHTML = false) {
+    const msg = document.createElement("div");
+    msg.className = `chat-message ${role}`;
 
-        if (role === "bot") {
-            // Replace links and also show images
-            let html = content
-                .replace(/(https?:\/\/[^\s]+\.(png|jpg|jpeg|gif))/gi, '<img src="$1" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />')
-                .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#4f46e5; text-decoration:underline;">$1</a>');
-            msg.innerHTML = html;
+    if (role === "bot") {
+        let html = content
+            .replace(/(https?:\/\/[^\s]+\.(png|jpg|jpeg|gif))/gi, '<img src="$1" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />')
+            .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#4f46e5; text-decoration:underline;">$1</a>');
+        msg.innerHTML = html;
+    } else {
+        if (isHTML) {
+            msg.innerHTML = content; // render HTML like images
         } else {
-            msg.textContent = content;
+            msg.textContent = content; // render plain text
         }
-
-        messages.appendChild(msg);
-        messages.scrollTop = messages.scrollHeight;
     }
+
+    messages.appendChild(msg);
+    messages.scrollTop = messages.scrollHeight;
+}
+
 
    function sendMessage() {
     const userText = input.value.trim();
@@ -233,13 +237,14 @@
     if (userText) appendMessage("user", userText);
 
     // Append image if exists
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = () => {
-            appendMessage("user", `<img src="${reader.result}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`);
-        };
-        reader.readAsDataURL(imageFile);
-    }
+  if (imageFile) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        appendMessage("user", `<img src="${reader.result}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`, true);
+    };
+    reader.readAsDataURL(imageFile);
+}
+
 
     input.value = "";
 
