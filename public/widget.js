@@ -202,16 +202,26 @@
         icebreakers.style.display = isHidden && !hasMessages() ? "flex" : "none";
     };
 
-  function appendMessage(role, text) {
+ function appendMessage(role, text, images = []) {
     const msg = document.createElement("div");
     msg.className = `chat-message ${role}`;
 
-    // Make links clickable for bot messages
     if (role === "bot") {
+        // Text with clickable links
         msg.innerHTML = text.replace(
             /(https?:\/\/[^\s]+)/g,
             '<a href="$1" target="_blank" style="color:#4f46e5; text-decoration:underline;">$1</a>'
         );
+
+        // Append images if any
+        images.forEach(url => {
+            const img = document.createElement("img");
+            img.src = url;
+            img.style.maxWidth = "100%";
+            img.style.marginTop = "8px";
+            img.style.borderRadius = "8px";
+            msg.appendChild(img);
+        });
     } else {
         msg.textContent = text;
     }
@@ -219,6 +229,7 @@
     messages.appendChild(msg);
     messages.scrollTop = messages.scrollHeight;
 }
+
 
     function sendMessage() {
         const userText = input.value.trim();
@@ -240,7 +251,11 @@
             }),
         })
             .then((res) => res.json())
-            .then((data) => appendMessage("bot", data.reply))
+            .then((data) => {
+    // If your backend sends data.images[], use it; else empty array
+    appendMessage("bot", data.reply, data.images || []);
+})
+
             .catch((err) => {
                 appendMessage("bot", "❌ There was an error contacting the assistant.");
                 console.error("Error:", err);
