@@ -241,59 +241,62 @@ else {
         messages.scrollTop = messages.scrollHeight;
     }
 
-   function sendMessage() {
+function sendMessage() {
     const userText = input.value.trim();
     const imageFile = imageInput.files[0];
 
     if (!userText && !imageFile) return;
     icebreakers.style.display = "none";
 
-    // Append user text
-    if (userText) appendMessage("user", userText);
-
-    // Append user image
     if (imageFile) {
         const reader = new FileReader();
         reader.onload = () => {
-            appendMessage(
-                "user",
-                `<img src="${reader.result}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`,
-                true
-            );
+            // Show text + image together in the chat
+            let content = "";
+            if (userText) content += `<div>${userText}</div>`;
+            content += `<img src="${reader.result}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`;
 
-            sendToServer(reader.result); // send to backend after showing
+            appendMessage("user", content, true);
+
+            // Send both text and image to server
+            sendToServer(userText, reader.result);
         };
         reader.readAsDataURL(imageFile);
     } else {
-        sendToServer(null); // no image, just text
+        // Only text, no image
+        appendMessage("user", userText);
+        sendToServer(userText, null);
     }
 
+    // Reset input
     input.value = "";
     imageInput.value = "";
 
     if (isFirstMessage) isFirstMessage = false;
 }
-function sendToServer(imageData) {
+
+function sendToServer(message, imageData) {
     fetch("https://serverowned.onrender.com/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            message: input.value.trim(),
+            message: message,
             image: imageData,
             clientId: clientId,
             userId: userId,
             isFirstMessage: isFirstMessage
         }),
     })
-        .then((res) => res.json())
-        .then((data) => {
-            appendMessage("bot", data.reply, true);
-        })
-        .catch((err) => {
-            appendMessage("bot", "❌ There was an error contacting the assistant.");
-            console.error("Error:", err);
-        });
+    .then(res => res.json())
+    .then(data => {
+        appendMessage("bot", data.reply, true);
+    })
+    .catch(err => {
+        appendMessage("bot", "❌ There was an error contacting the assistant.");
+        console.error("Error:", err);
+    });
 }
+
 
 imageInput.addEventListener("change", () => {
     const file = imageInput.files[0];
