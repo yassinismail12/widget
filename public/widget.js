@@ -208,27 +208,24 @@
         const msg = document.createElement("div");
         msg.className = `chat-message ${role}`;
 
-      if (role === "bot") {
+  if (role === "bot") {
     let html = content;
 
-    // Convert ONLY clean image URLs → <img>  
+    // Convert NON-image URLs to links
     html = html.replace(
-        /(^|\s)(https?:\/\/[^\s]+?\.(?:png|jpg|jpeg|gif))(?![^<]*>)/gi,
-        (match, space, url) =>
-            `${space}<img src="${url}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`
-    );
-
-    // Convert other URLs → clickable links (skip images)
-    html = html.replace(
-        /(^|\s)(https?:\/\/[^\s]+)(?![^<]*>)/gi,
-        (match, space, url) => {
-            if (/\.(png|jpg|jpeg|gif)$/i.test(url)) return match; // already converted
-            return `${space}<a href="${url}" target="_blank" style="color:#4f46e5; text-decoration:underline;">${url}</a>`;
+        /(https?:\/\/[^\s]+)(?![^<]*>)/gi,
+        (match, url) => {
+            // If the URL is an image → DO NOT convert
+            if (/\.(png|jpg|jpeg|gif)$/i.test(url)) {
+                return url; // keep it as plain text
+            }
+            return `<a href="${url}" target="_blank" style="color:#4f46e5; text-decoration:underline;">${url}</a>`;
         }
     );
 
     msg.innerHTML = html;
 }
+
 else {
             if (isHTML) {
                 msg.innerHTML = content;
@@ -285,9 +282,15 @@ else {
             .then((res) => res.json())
             .then((data) => {
                 appendMessage("bot", data.reply);
-                if (data.imageUrls && data.imageUrls.length > 0) {
-                    data.imageUrls.forEach(url => appendMessage("bot", `<img src="${url}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`, true));
-                }
+               if (data.imageUrls && data.imageUrls.length > 0) {
+    data.imageUrls.forEach(url => {
+        appendMessage("bot",
+            `<img src="${url}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`,
+            true
+        );
+    });
+}
+
             })
             .catch((err) => {
                 appendMessage("bot", "❌ There was an error contacting the assistant.");
