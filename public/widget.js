@@ -209,10 +209,16 @@
         msg.className = `chat-message ${role}`;
 
         if (role === "bot") {
-            let html = content
-                .replace(/(https?:\/\/[^\s]+\.(png|jpg|jpeg|gif))/gi, '<img src="$1" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />')
-                .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#4f46e5; text-decoration:underline;">$1</a>');
-            msg.innerHTML = html;
+        let html = content
+    // Replace image URLs
+    .replace(/(https?:\/\/[^\s]+\.(png|jpg|jpeg|gif))/gi,
+        '<img src="$1" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />'
+    )
+    // Replace normal URLs but NOT inside img tags
+    .replace(/(?<!src=")(https?:\/\/[^\s]+)/g,
+        '<a href="$1" target="_blank" style="color:#4f46e5; text-decoration:underline;">$1</a>'
+    );
+   msg.innerHTML = html;
         } else {
             if (isHTML) {
                 msg.innerHTML = content;
