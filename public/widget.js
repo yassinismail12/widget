@@ -241,47 +241,42 @@ else {
         messages.scrollTop = messages.scrollHeight;
     }
 
-    function sendMessage() {
-        const userText = input.value.trim();
-        const imageFile = imageInput.files[0];
+   function sendMessage() {
+    const userText = input.value.trim();
+    const imageFile = imageInput.files[0];
 
-        if (!userText && !imageFile) return;
-        icebreakers.style.display = "none";
+    if (!userText && !imageFile) return;
+    icebreakers.style.display = "none";
 
-        // Append user text
-        if (userText) appendMessage("user", userText);
+    // Append user text ONLY (no immediate image preview)
+    if (userText) appendMessage("user", userText);
 
-        // Handle image preview locally
-        let imageDataPromise = Promise.resolve(null);
-        if (imageFile) {
+    // Handle image for backend only
+    let imageDataPromise = Promise.resolve(null);
+    if (imageFile) {
+        imageDataPromise = new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = () => appendMessage("user", `<img src="${reader.result}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`, true);
+            reader.onload = () => resolve(reader.result);
             reader.readAsDataURL(imageFile);
+        });
+    }
 
-            // For sending to backend
-            imageDataPromise = new Promise((resolve) => {
-                const reader2 = new FileReader();
-                reader2.onload = () => resolve(reader2.result);
-                reader2.readAsDataURL(imageFile);
-            });
-        }
+    input.value = "";
 
-        input.value = "";
+    imageDataPromise.then((imageData) => {
+        imageInput.value = "";
 
-        imageDataPromise.then((imageData) => {
-            imageInput.value = "";
-
-            fetch("https://serverowned.onrender.com/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: userText,
-                    image: imageData,
-                    clientId: clientId,
-                    userId: userId,
-                    isFirstMessage: isFirstMessage
-                }),
-            })
+        fetch("https://serverowned.onrender.com/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: userText,
+                image: imageData,
+                clientId: clientId,
+                userId: userId,
+                isFirstMessage: isFirstMessage
+            }),
+        })
             .then((res) => res.json())
             .then((data) => {
                let reply = data.reply;
