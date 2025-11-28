@@ -284,10 +284,17 @@ else {
             })
             .then((res) => res.json())
             .then((data) => {
-                appendMessage("bot", data.reply);
-                if (data.imageUrls && data.imageUrls.length > 0) {
-                    data.imageUrls.forEach(url => appendMessage("bot", `<img src="${url}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`, true));
-                }
+               let reply = data.reply;
+
+// Append image inside SAME bubble
+if (data.imageUrls && data.imageUrls.length > 0) {
+    data.imageUrls.forEach(url => {
+        reply += `<br><img src="${url}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`;
+    });
+}
+
+appendMessage("bot", reply, true);
+
             })
             .catch((err) => {
                 appendMessage("bot", "❌ There was an error contacting the assistant.");
