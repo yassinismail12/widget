@@ -248,53 +248,53 @@ else {
     if (!userText && !imageFile) return;
     icebreakers.style.display = "none";
 
-    // Append user text ONLY (no immediate image preview)
+    // Append user text
     if (userText) appendMessage("user", userText);
 
-    // Handle image for backend only
-    let imageDataPromise = Promise.resolve(null);
+    // Append user image
     if (imageFile) {
-        imageDataPromise = new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(imageFile);
-        });
+        const reader = new FileReader();
+        reader.onload = () => {
+            appendMessage(
+                "user",
+                `<img src="${reader.result}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`,
+                true
+            );
+
+            sendToServer(reader.result); // send to backend after showing
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        sendToServer(null); // no image, just text
     }
 
     input.value = "";
+    imageInput.value = "";
 
-    imageDataPromise.then((imageData) => {
-        imageInput.value = "";
-
-        fetch("https://serverowned.onrender.com/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                message: userText,
-                image: imageData,
-                clientId: clientId,
-                userId: userId,
-                isFirstMessage: isFirstMessage
-            }),
+    if (isFirstMessage) isFirstMessage = false;
+}
+function sendToServer(imageData) {
+    fetch("https://serverowned.onrender.com/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            message: input.value.trim(),
+            image: imageData,
+            clientId: clientId,
+            userId: userId,
+            isFirstMessage: isFirstMessage
+        }),
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            appendMessage("bot", data.reply, true);
         })
-            .then((res) => res.json())
-            .then((data) => {
-               let reply = data.reply;
-
-// Append image inside SAME bubble
-
-
-appendMessage("bot", reply, true);
-
-            })
-            .catch((err) => {
-                appendMessage("bot", "❌ There was an error contacting the assistant.");
-                console.error("Error:", err);
-            });
+        .catch((err) => {
+            appendMessage("bot", "❌ There was an error contacting the assistant.");
+            console.error("Error:", err);
         });
+}
 
-        if (isFirstMessage) isFirstMessage = false;
-    }
 
     sendBtn.onclick = sendMessage;
     input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
