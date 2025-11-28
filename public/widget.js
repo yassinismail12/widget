@@ -295,6 +295,27 @@ function sendToServer(imageData) {
         });
 }
 
+imageInput.addEventListener("change", () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        // Append the image as a user message
+        appendMessage(
+            "user",
+            `<img src="${reader.result}" style="max-width:100%; border-radius:8px; display:block; margin:5px 0;" />`,
+            true
+        );
+
+        // Send the image to the server
+        sendToServer(reader.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so the same file can be re-uploaded if needed
+    imageInput.value = "";
+});
 
     sendBtn.onclick = sendMessage;
     input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
