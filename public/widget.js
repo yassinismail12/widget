@@ -154,12 +154,12 @@
     const widgetHTML = `
         <div id="chatbot-button">💬</div>
         <div id="chatbot-window">
-            <div id="chatbot-header">Chat with us</div>
-            <div id="chatbot-icebreakers">
-                <div class="icebreaker">Can foreigners buy property in Egypt?</div>
-                <div class="icebreaker">Do prices include maintenance?</div>
-                <div class="icebreaker">Do you offer cash discounts?</div>
-            </div>
+             <div id="chatbot-header">${widgetTitle}</div>
+        <div id="chatbot-icebreakers">
+            <div class="icebreaker">${ice1}</div>
+            <div class="icebreaker">${ice2}</div>
+            <div class="icebreaker">${ice3}</div>
+        </div>
             <div id="chatbot-messages"></div>
             <div id="chatbot-input-container">
                 <input id="chatbot-input" type="text" placeholder="Type your message..." />
@@ -176,7 +176,11 @@
 
     const scriptTag = document.currentScript;
     const clientId = scriptTag.getAttribute("data-client-id");
+const widgetTitle = scriptTag.getAttribute("data-title") || "Chat with us";
 
+const ice1 = scriptTag.getAttribute("data-ice1") || "Can foreigners buy property in Egypt?";
+const ice2 = scriptTag.getAttribute("data-ice2") || "Do prices include maintenance?";
+const ice3 = scriptTag.getAttribute("data-ice3") || "Do you offer cash discounts?";
     let userId = localStorage.getItem("userId");
     if (!userId) {
         userId = crypto.randomUUID();
