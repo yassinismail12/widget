@@ -151,6 +151,13 @@
     `;
     document.head.appendChild(style);
 
+    const scriptTag = document.currentScript;
+    const clientId = scriptTag.getAttribute("data-client-id");
+const widgetTitle = scriptTag.getAttribute("data-title") || "Chat with us";
+
+const ice1 = scriptTag.getAttribute("data-ice1") || "Can foreigners buy property in Egypt?";
+const ice2 = scriptTag.getAttribute("data-ice2") || "Do prices include maintenance?";
+const ice3 = scriptTag.getAttribute("data-ice3") || "Do you offer cash discounts?";
     const widgetHTML = `
         <div id="chatbot-button">💬</div>
         <div id="chatbot-window">
@@ -174,13 +181,6 @@
     container.innerHTML = widgetHTML;
     document.body.appendChild(container);
 
-    const scriptTag = document.currentScript;
-    const clientId = scriptTag.getAttribute("data-client-id");
-const widgetTitle = scriptTag.getAttribute("data-title") || "Chat with us";
-
-const ice1 = scriptTag.getAttribute("data-ice1") || "Can foreigners buy property in Egypt?";
-const ice2 = scriptTag.getAttribute("data-ice2") || "Do prices include maintenance?";
-const ice3 = scriptTag.getAttribute("data-ice3") || "Do you offer cash discounts?";
     let userId = localStorage.getItem("userId");
     if (!userId) {
         userId = crypto.randomUUID();
